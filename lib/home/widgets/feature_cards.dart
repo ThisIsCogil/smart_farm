@@ -47,16 +47,22 @@ class SensorMetricsCard extends StatelessWidget {
                   child: Row(
                     children: const [
                       Expanded(
-                          child: SensorValueBox(
-                              label: 'Sensor 1',
-                              value: '18',
-                              color: Color(0xFF27AE60))),
+                        child: SensorValueBox(
+                          label: 'Sensor 1',
+                          value: '18',
+                          color: Color(0xFF27AE60),
+                          backgroundColor: Color(0xFFE8F8F5), // Warna 1
+                        ),
+                      ),
                       SizedBox(width: 10),
                       Expanded(
-                          child: SensorValueBox(
-                              label: 'Sensor 2',
-                              value: '31',
-                              color: Color(0xFFE74C3C))),
+                        child: SensorValueBox(
+                          label: 'Sensor 2',
+                          value: '31',
+                          color: Color(0xFFE74C3C),
+                          backgroundColor: Color(0xFFFDEDEC), // Warna 2
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -105,16 +111,22 @@ class SensorMetricsCard extends StatelessWidget {
                   child: Row(
                     children: const [
                       Expanded(
-                          child: SensorValueBox(
-                              label: 'Sensor 1',
-                              value: '80',
-                              color: Color(0xFF27AE60))),
+                        child: SensorValueBox(
+                          label: 'Sensor 1',
+                          value: '80',
+                          color: Color(0xFF27AE60),
+                          backgroundColor: Color(0xFFF4F9E9), // Warna 3
+                        ),
+                      ),
                       SizedBox(width: 10),
                       Expanded(
-                          child: SensorValueBox(
-                              label: 'Sensor 2',
-                              value: '60',
-                              color: Color(0xFFE67E22))),
+                        child: SensorValueBox(
+                          label: 'Sensor 2',
+                          value: '60',
+                          color: Color(0xFFE67E22),
+                          backgroundColor: Color(0xFFFFF4E5), // Warna 4
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -131,40 +143,53 @@ class SensorValueBox extends StatelessWidget {
   final String label;
   final String value;
   final Color color;
-  const SensorValueBox(
-      {Key? key, required this.label, required this.value, required this.color})
-      : super(key: key);
+  final Color backgroundColor; // ✅ Tambahkan parameter baru
+
+  const SensorValueBox({
+    Key? key,
+    required this.label,
+    required this.value,
+    required this.color,
+    required this.backgroundColor, // ✅ Wajib diisi
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
       decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color, width: 2)),
+        color: backgroundColor, // ✅ Ganti agar dinamis
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color, width: 2),
+      ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           FittedBox(
             fit: BoxFit.scaleDown,
-            child: Text(label,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: 10,
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.w500)),
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 10,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
           const SizedBox(height: 8),
           FittedBox(
             fit: BoxFit.scaleDown,
-            child: Text(value,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                    height: 1)),
+            child: Text(
+              value,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: color,
+                height: 1,
+              ),
+            ),
           ),
         ],
       ),

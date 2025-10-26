@@ -1,4 +1,4 @@
-// app_shell.dart
+
 import 'package:flutter/material.dart';
 
 // ====== IMPORT HALAMANMU ======
@@ -26,9 +26,9 @@ class _AppShellState extends State<AppShell> {
   // Pastikan tiap page scrollable agar mekanisme hide-on-scroll aktif.
   // DashboardScreen kamu sudah scrollable. Untuk halaman lain,
   // kalau masih pendek, tambahkan ListView/SingleChildScrollView di file masing-masing.
-  late final List<Widget> _pages = const [
+  late final List<Widget> _pages = [
     DashboardScreen(),
-    CalendarPage(),
+    CalendarScreen(),
     ScanPage(),
     StatsPage(),
     ProfilePage(),
@@ -43,13 +43,13 @@ class _AppShellState extends State<AppShell> {
 
       // Opsional: kalau ingin custom icon, isi di sini;
       // kalau tidak diisi, akan pakai default (home, calendar, play, chart, person).
-      // icons: [
-      //   Icons.home_outlined,
-      //   Icons.calendar_today_outlined,
-      //   Icons.qr_code_scanner_outlined,
-      //   Icons.bar_chart_outlined,
-      //   Icons.person_outline,
-      // ],
+      icons: [
+        Icons.home_sharp,
+        Icons.calendar_today_outlined,
+        Icons.qr_code_scanner_outlined,
+        Icons.bar_chart_outlined,
+        Icons.person_outlined,
+      ],
 
       // Opsional: tweak durasi animasi
       // duration: const Duration(milliseconds: 220),

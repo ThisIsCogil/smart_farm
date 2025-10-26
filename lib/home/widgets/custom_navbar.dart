@@ -119,11 +119,11 @@ class _HideOnScrollNavScaffoldState extends State<HideOnScrollNavScaffold> {
 /// ===================================================================
 class CustomBottomNavigationBar extends StatelessWidget {
   static const List<IconData> _defaultIcons = [
-    Icons.home_outlined,
-    Icons.calendar_today_outlined,
-    Icons.play_circle_outline,
+    Icons.home_filled,
+    Icons.calendar_today,
+    Icons.qr_code_scanner,
     Icons.bar_chart_outlined,
-    Icons.person_outline,
+    Icons.person,
   ];
 
   final int currentIndex;
