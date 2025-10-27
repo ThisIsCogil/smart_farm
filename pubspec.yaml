@@ -37,6 +37,10 @@ dependencies:
   table_calendar: ^3.0.9
   intl: ^0.18.1
   image_picker: ^1.0.4
+  fl_chart: ^0.68.0
+  excel: ^4.0.3
+  path_provider: ^2.1.1
+  permission_handler: ^11.0.1
 
 dev_dependencies:
   # The "flutter_lints" package below contains a set of recommended lints to

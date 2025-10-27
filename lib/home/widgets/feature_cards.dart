@@ -51,7 +51,7 @@ class SensorMetricsCard extends StatelessWidget {
                           label: 'Sensor 1',
                           value: '18',
                           color: Color(0xFF27AE60),
-                          backgroundColor: Color(0xFFE8F8F5), // Warna 1
+                          backgroundColor: Color(0xFFF4F9E9), // Warna 1
                         ),
                       ),
                       SizedBox(width: 10),
@@ -59,8 +59,8 @@ class SensorMetricsCard extends StatelessWidget {
                         child: SensorValueBox(
                           label: 'Sensor 2',
                           value: '31',
-                          color: Color(0xFFE74C3C),
-                          backgroundColor: Color(0xFFFDEDEC), // Warna 2
+                          color: Color(0xFFE67E22),
+                          backgroundColor: Color(0xFFFFF4E5), // Warna 2
                         ),
                       ),
                     ],
@@ -173,7 +173,7 @@ class SensorValueBox extends StatelessWidget {
               style: TextStyle(
                 fontSize: 10,
                 color: Colors.grey[600],
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.w800,
               ),
             ),
           ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../views/dashboard/notif_page.dart';
 
 class ProfileHeader extends StatelessWidget {
   const ProfileHeader({Key? key}) : super(key: key);
@@ -54,18 +55,28 @@ class ProfileHeader extends StatelessWidget {
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8F9FA),
-              borderRadius: BorderRadius.circular(12),
+          InkWell(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const NotifPage()),
+              );
+            },
+            borderRadius:
+                BorderRadius.circular(12), // efek ripple sesuai bentuk
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8F9FA),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.notifications_outlined,
+                color: Color(0xFF2D3436),
+                size: 22,
+              ),
             ),
-            child: const Icon(
-              Icons.notifications_outlined,
-              color: Color(0xFF2D3436),
-              size: 22,
-            ),
-          ),
+          )
         ],
       ),
     );
