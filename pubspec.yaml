@@ -41,6 +41,9 @@ dependencies:
   excel: ^4.0.3
   path_provider: ^2.1.1
   permission_handler: ^11.0.1
+  shared_preferences: ^2.3.0
+  supabase_flutter: ^2.10.3
+  share_plus: ^9.0.0
 
 dev_dependencies:
   # The "flutter_lints" package below contains a set of recommended lints to
@@ -62,9 +65,7 @@ flutter:
   uses-material-design: true
   # To add assets to your application, add an assets section, like this:
   assets:
-    - assets/coffee_farm.png
-    - assets/scan_camera.png
-    - assets/upload_file.png
+    - assets/
   #   - images/a_dot_ham.jpeg
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

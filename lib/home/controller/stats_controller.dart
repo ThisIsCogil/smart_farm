@@ -1,29 +1,38 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:excel/excel.dart' as excel_pkg;
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../models/stats_model.dart';
 
 class StatsController {
-  // ===== State =====
+  // ===== State utama =====
   String selectedPeriod = 'Week';
   DateTime anchorDate = DateTime.now();
 
-  // === Ticker real-time (update label tiap pergantian menit) ===
+  // Ticker real-time (opsional)
   Timer? _ticker;
   int _lastMinute = DateTime.now().minute;
 
-  // === Model ===
+  // Model Supabase
   final AirQualityModel _model = AirQualityModel();
 
-  // Callback untuk memicu refresh UI (dipasang dari View)
+  // Data & loading
+  List<Map<String, dynamic>> _data = [];
+  bool isLoading = false;
+
+  List<Map<String, dynamic>> get currentData => _data;
+
+  // Callback untuk refresh UI
   VoidCallback? _refresh;
 
   void init({VoidCallback? refresh}) {
     _refresh = refresh;
+
     _ticker = Timer.periodic(const Duration(seconds: 5), (_) {
       final now = DateTime.now();
       if (now.minute != _lastMinute) {
@@ -32,23 +41,80 @@ class StatsController {
         _refresh?.call();
       }
     });
+
+    // load pertama kali
+    loadData();
   }
 
   void dispose() {
     _ticker?.cancel();
   }
 
-  // ===================== DATA AKTIF =====================
-  List<Map<String, dynamic>> get currentData =>
-      _model.getCurrentData(selectedPeriod);
+  // ===================== Ubah periode =====================
+  void changePeriod(String period) {
+    if (selectedPeriod == period) return;
+    selectedPeriod = period;
+    loadData();
+  }
 
-  // ===================== UTIL TANGGAL (ID) =====================
+  // ===================== Pick tanggal =====================
+  Future<void> pickAnchor(BuildContext context) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: anchorDate,
+      firstDate: DateTime(2022, 1, 1),
+      lastDate: DateTime(2100, 12, 31),
+    );
+    if (picked != null) {
+      anchorDate = picked;
+      await loadData();
+    }
+  }
+
+  // ===================== Load data dari Supabase ==========
+  Future<void> loadData() async {
+    try {
+      isLoading = true;
+      _refresh?.call();
+
+      _data = await _model.getCurrentData(selectedPeriod, anchorDate);
+    } catch (e, st) {
+      debugPrint('Error loadData: $e\n$st');
+      _data = [];
+    } finally {
+      isLoading = false;
+      _refresh?.call();
+    }
+  }
+
+  // ===================== Util tanggal (Indonesia) =========
   static const _bulanPendek = [
-    'Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'Mei',
+    'Jun',
+    'Jul',
+    'Agu',
+    'Sep',
+    'Okt',
+    'Nov',
+    'Des'
   ];
   static const _bulanPanjang = [
-    'Januari','Februari','Maret','April','Mei','Juni','Juli',
-    'Agustus','September','Oktober','November','Desember'
+    'Januari',
+    'Februari',
+    'Maret',
+    'April',
+    'Mei',
+    'Juni',
+    'Juli',
+    'Agustus',
+    'September',
+    'Oktober',
+    'November',
+    'Desember'
   ];
 
   String _formatDateID(DateTime d) =>
@@ -65,81 +131,71 @@ class StatsController {
     return '${_formatDateID(start)} – ${_formatDateID(end)}';
   }
 
-  String _formatMonthYearID(DateTime d) =>
-      '${_bulanPanjang[d.month - 1]} ${d.year}';
-
   String get rangeLabel {
     switch (selectedPeriod) {
       case 'Day':
         return _formatDateID(anchorDate);
       case 'Week':
         return _formatWeekRangeID(anchorDate);
-      case 'Month':
-        return _formatMonthYearID(anchorDate);
       default:
         return '';
     }
   }
 
-  Future<void> pickAnchor(BuildContext context) async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: anchorDate,
-      firstDate: DateTime(2022, 1, 1),
-      lastDate: DateTime(2100, 12, 31),
-    );
-    if (picked != null) {
-      anchorDate = picked;
-      _refresh?.call();
-    }
-  }
+  // ===================== Export ke Excel ===================
+Future<void> exportAndShareExcel(BuildContext context) async {
+  try {
+    // 1. Buat file Excel
+    final excel = excel_pkg.Excel.createExcel();
+    final sheet = excel['Air Quality - $selectedPeriod'];
 
-  // ===================== EXPORT EXCEL =====================
-  Future<void> exportToExcel(BuildContext context) async {
-    try {
-      final status = await Permission.storage.request();
-      if (!status.isGranted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Izin penyimpanan dibutuhkan')),
-        );
-        return;
-      }
+    // Header
+    sheet.appendRow([
+      excel_pkg.TextCellValue('Label'),
+      excel_pkg.TextCellValue('Temperature'),
+      excel_pkg.TextCellValue('Humidity'),
+      excel_pkg.TextCellValue('Soil'),
+    ]);
 
-      final excel = excel_pkg.Excel.createExcel();
-      final sheet = excel['Air Quality - $selectedPeriod'];
-
-      // Header
+    // Data
+    for (final row in currentData) {
       sheet.appendRow([
-        excel_pkg.TextCellValue('Label'),
-        excel_pkg.TextCellValue('Temperature'),
-        excel_pkg.TextCellValue('Humidity'),
+        excel_pkg.TextCellValue(row['day'].toString()),
+        excel_pkg.IntCellValue((row['temperature'] ?? 0) as int),
+        excel_pkg.IntCellValue((row['humidity'] ?? 0) as int),
+        excel_pkg.IntCellValue((row['soil'] ?? 0) as int),
       ]);
-
-      // Rows sesuai tab aktif
-      for (final row in currentData) {
-        sheet.appendRow([
-          excel_pkg.TextCellValue(row['day'].toString()),
-          excel_pkg.IntCellValue(row['temperature'] as int),
-          excel_pkg.IntCellValue(row['humidity'] as int),
-        ]);
-      }
-
-      final directory = await getExternalStorageDirectory();
-      final safeDir = directory ?? await getApplicationDocumentsDirectory();
-      final filePath =
-          '${safeDir.path}/air_quality_${selectedPeriod.toLowerCase()}.xlsx';
-
-      File(filePath)
-        ..createSync(recursive: true)
-        ..writeAsBytesSync(excel.encode()!);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('File tersimpan: $filePath')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal export: $e')),
-      );
     }
+
+    // 2. Simpan ke folder dokumen aplikasi (AMAN utk Android 10–14)
+    final dir = await getApplicationDocumentsDirectory();
+    final filePath =
+        '${dir.path}/air_quality_${selectedPeriod.toLowerCase()}.xlsx';
+
+    final file = File(filePath)
+      ..createSync(recursive: true)
+      ..writeAsBytesSync(excel.encode()!);
+
+    // 3. Tampilkan notif lokal
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('File tersimpan: $filePath')),
+    );
+
+    // 4. Buka share sheet → pilih WhatsApp
+    final xfile = XFile(
+      filePath,
+      mimeType:
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+
+    await Share.shareXFiles(
+      [xfile],
+      text: 'Riwayat kualitas lingkungan periode $selectedPeriod',
+    );
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Gagal export/share: $e')),
+    );
   }
+}
 }

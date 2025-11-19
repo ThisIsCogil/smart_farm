@@ -7,7 +7,7 @@ class ProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: Colors.grey[100],
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {

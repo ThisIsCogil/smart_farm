@@ -146,8 +146,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 const ArchiveDataCard(),
                                 const SizedBox(height: 16),
                                 const DailyTaskCard(),
+                                const SizedBox(height: 16),
 
-                                // Ganti SizedBox(height: 80) -> bottomSpace dinamis
+                                ServerConfigCard(), // <= KARTU PENGATURAN SERVER BARU
+
                                 SizedBox(height: bottomSpace),
                               ],
                             ),

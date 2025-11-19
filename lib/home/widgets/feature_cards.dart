@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SensorMetricsCard extends StatelessWidget {
   const SensorMetricsCard({Key? key}) : super(key: key);
@@ -37,8 +38,8 @@ class SensorMetricsCard extends StatelessWidget {
                     const SizedBox(width: 6),
                     const Text('Temperature',
                         style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
                             color: Color(0xFF2D3436))),
                   ],
                 ),
@@ -101,8 +102,8 @@ class SensorMetricsCard extends StatelessWidget {
                     const SizedBox(width: 6),
                     const Text('Humidity',
                         style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
                             color: Color(0xFF2D3436))),
                   ],
                 ),
@@ -318,3 +319,183 @@ class MenuCard extends StatelessWidget {
     );
   }
 }
+class ServerConfigCard extends StatefulWidget {
+  const ServerConfigCard({Key? key}) : super(key: key);
+
+  @override
+  State<ServerConfigCard> createState() => _ServerConfigCardState();
+}
+
+class _ServerConfigCardState extends State<ServerConfigCard> {
+  String? _serverUrl;
+  bool _isLoading = true;
+
+  final TextEditingController _controller = TextEditingController();
+  static const String _prefsKey = 'server_url';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadServerUrl();
+  }
+
+  Future<void> _loadServerUrl() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString(_prefsKey);
+    setState(() {
+      _serverUrl = saved;
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _saveServerUrl(String url) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_prefsKey, url);
+    setState(() {
+      _serverUrl = url;
+    });
+  }
+
+  Future<void> _openEditDialog() async {
+    _controller.text = _serverUrl ?? '';
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Pengaturan Server AI'),
+          content: TextField(
+            controller: _controller,
+            decoration: const InputDecoration(
+              labelText: 'Base URL Server',
+              hintText: 'misal: http://192.168.1.5:8000',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final text = _controller.text.trim();
+                if (text.isNotEmpty) {
+                  _saveServerUrl(text);
+                }
+                Navigator.pop(context);
+              },
+              child: const Text('Simpan'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: _isLoading ? null : _openEditDialog,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 15,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2ECC71).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.dns_outlined,
+                color: Color(0xFF2ECC71),
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Server AI',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2D3436),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  if (_isLoading)
+                    const Text(
+                      'Memuat pengaturan...',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF636E72),
+                      ),
+                    )
+                  else if (_serverUrl == null || _serverUrl!.isEmpty)
+                    const Text(
+                      'Belum diatur. Ketuk untuk menambahkan base URL server.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF636E72),
+                      ),
+                    )
+                  else
+                    Text(
+                      _serverUrl!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF636E72),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF6D4C41),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.edit,
+                    size: 14,
+                    color: Colors.white,
+                  ),
+                  SizedBox(width: 4),
+                  Text(
+                    'Edit',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
