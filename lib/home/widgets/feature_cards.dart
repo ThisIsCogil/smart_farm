@@ -1,171 +1,197 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class SensorMetricsCard extends StatelessWidget {
+import 'dart:async';
+import 'package:flutter/material.dart';
+import '../services/mqtt_service.dart';
+
+class SensorMetricsCard extends StatefulWidget {
   const SensorMetricsCard({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 20,
-                    offset: const Offset(0, 4)),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.thermostat_outlined,
-                        color: Colors.grey[700], size: 20),
-                    const SizedBox(width: 6),
-                    const Text('°C',
-                        style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF2D3436))),
-                    const SizedBox(width: 6),
-                    const Text('Temperature',
-                        style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF2D3436))),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                IntrinsicHeight(
-                  child: Row(
-                    children: const [
-                      Expanded(
-                        child: SensorValueBox(
-                          label: 'Sensor 1',
-                          value: '18',
-                          color: Color(0xFF27AE60),
-                          backgroundColor: Color(0xFFF4F9E9), // Warna 1
-                        ),
-                      ),
-                      SizedBox(width: 10),
-                      Expanded(
-                        child: SensorValueBox(
-                          label: 'Sensor 2',
-                          value: '31',
-                          color: Color(0xFFE67E22),
-                          backgroundColor: Color(0xFFFFF4E5), // Warna 2
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 20,
-                    offset: const Offset(0, 4)),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.water_drop_outlined,
-                        color: Colors.grey[700], size: 20),
-                    const SizedBox(width: 6),
-                    const Text('%',
-                        style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF2D3436))),
-                    const SizedBox(width: 6),
-                    const Text('Humidity',
-                        style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF2D3436))),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                IntrinsicHeight(
-                  child: Row(
-                    children: const [
-                      Expanded(
-                        child: SensorValueBox(
-                          label: 'Sensor 1',
-                          value: '80',
-                          color: Color(0xFF27AE60),
-                          backgroundColor: Color(0xFFF4F9E9), // Warna 3
-                        ),
-                      ),
-                      SizedBox(width: 10),
-                      Expanded(
-                        child: SensorValueBox(
-                          label: 'Sensor 2',
-                          value: '60',
-                          color: Color(0xFFE67E22),
-                          backgroundColor: Color(0xFFFFF4E5), // Warna 4
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+  State<SensorMetricsCard> createState() => _SensorMetricsCardState();
 }
 
-class SensorValueBox extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color color;
-  final Color backgroundColor; // ✅ Tambahkan parameter baru
+class _SensorMetricsCardState extends State<SensorMetricsCard> {
+  final MqttService _mqtt = MqttService();
+  StreamSubscription<Map<String, dynamic>>? _sub;
 
-  const SensorValueBox({
-    Key? key,
-    required this.label,
-    required this.value,
-    required this.color,
-    required this.backgroundColor, // ✅ Wajib diisi
-  }) : super(key: key);
+  double _temperature = 0;
+  double _humidityAir = 0;
+  double _humiditySoil = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _initMqtt();
+  }
+
+  Future<void> _initMqtt() async {
+    await _mqtt.connect();
+
+    _sub = _mqtt.sensorsStream.listen((data) {
+      setState(() {
+        // Amanin kalau key tidak ada / null
+        final t = data['temperature'];
+        final ha = data['humidity_air'];
+        final hs = data['humidity_soil'];
+
+        if (t != null) _temperature = (t as num).toDouble();
+        if (ha != null) _humidityAir = (ha as num).toDouble();
+        if (hs != null) _humiditySoil = (hs as num).toDouble();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: backgroundColor, // ✅ Ganti agar dinamis
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.sensors, color: Colors.grey[700], size: 20),
+              const SizedBox(width: 8),
+              const Text(
+                'Sensor Monitoring',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2D3436),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          IntrinsicHeight(
+            child: Row(
+              children: [
+                Expanded(
+                  child: SensorValueBox(
+                    icon: Icons.thermostat_outlined,
+                    label: 'Temperature',
+                    value: _temperature,
+                    unit: '°C',
+                    color: const Color(0xFF27AE60),
+                    backgroundColor: const Color(0xFFF4F9E9),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: SensorValueBox(
+                    icon: Icons.water_drop_outlined,
+                    label: 'Humidity',
+                    value: _humidityAir,
+                    unit: '%',
+                    color: const Color(0xFF3498DB),
+                    backgroundColor: const Color(0xFFE3F2FD),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: SensorValueBox(
+                    icon: Icons.grass_outlined,
+                    label: 'Soil Moisture',
+                    value: _humiditySoil,
+                    unit: '%',
+                    color: const Color(0xFFE67E22),
+                    backgroundColor: const Color(0xFFFFF4E5),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ========== SENSOR VALUE BOX (KOMPONEN INDIVIDUAL) ==========
+class SensorValueBox extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final double value;
+  final String unit;
+  final Color color;
+  final Color backgroundColor;
+
+  const SensorValueBox({
+    Key? key,
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.unit,
+    required this.color,
+    required this.backgroundColor,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    // format angka biar rapi
+    final valueStr = value.toStringAsFixed(0);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+      decoration: BoxDecoration(
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: color, width: 2),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          Icon(icon, color: color, size: 28),
+          const SizedBox(height: 12),
+
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              valueStr,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: color,
+                height: 1,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              unit,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+
           FittedBox(
             fit: BoxFit.scaleDown,
             child: Text(
@@ -174,21 +200,7 @@ class SensorValueBox extends StatelessWidget {
               style: TextStyle(
                 fontSize: 10,
                 color: Colors.grey[600],
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              value,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: color,
-                height: 1,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
@@ -197,6 +209,7 @@ class SensorValueBox extends StatelessWidget {
     );
   }
 }
+
 
 class DiseaseDetectionCard extends StatelessWidget {
   const DiseaseDetectionCard({Key? key}) : super(key: key);
@@ -210,17 +223,6 @@ class DiseaseDetectionCard extends StatelessWidget {
   }
 }
 
-class SafeLimitCard extends StatelessWidget {
-  const SafeLimitCard({Key? key}) : super(key: key);
-  @override
-  Widget build(BuildContext context) {
-    return const MenuCard(
-        icon: Icons.settings_outlined,
-        iconColor: Color(0xFF3498DB),
-        title: 'Safe Limit',
-        subtitle: 'Set control device settings');
-  }
-}
 
 class ArchiveDataCard extends StatelessWidget {
   const ArchiveDataCard({Key? key}) : super(key: key);
@@ -414,12 +416,12 @@ class _ServerConfigCardState extends State<ServerConfigCard> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: const Color(0xFF2ECC71).withOpacity(0.1),
+                color: const Color(0xFF3498DB).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(
                 Icons.dns_outlined,
-                color: Color(0xFF2ECC71),
+                color: Color(0xFF3498DB),
                 size: 24,
               ),
             ),

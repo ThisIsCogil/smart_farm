@@ -46,13 +46,13 @@ class _AppShellState extends State<AppShell> {
       icons: [
         Icons.home_sharp,
         Icons.calendar_today_outlined,
-        Icons.qr_code_scanner_outlined,
+        Icons.camera_alt_sharp,
         Icons.bar_chart_outlined,
         Icons.person_outlined,
       ],
 
       // Opsional: tweak durasi animasi
-      // duration: const Duration(milliseconds: 220),
+      duration: const Duration(milliseconds: 220),
     );
   }
 }

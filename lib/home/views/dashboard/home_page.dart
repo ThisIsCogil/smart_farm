@@ -74,7 +74,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       physics: const AlwaysScrollableScrollPhysics(),
                       child: Column(
                         children: [
-                          // HERO section (gambar + overlay + header + weather + pump)
+                          // HERO section (gambar + overlay + header + weather + sensor)
                           Stack(
                             children: [
                               Container(
@@ -123,7 +123,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         else
                                           const WeatherErrorCard(),
                                         const SizedBox(height: 16),
-                                        const WaterPumpCard(),
+                                        // SENSOR METRICS CARD DIPINDAH KE SINI (menggantikan WaterPumpCard)
+                                        const SensorMetricsCard(),
                                       ],
                                     ),
                                   ),
@@ -137,11 +138,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             padding: const EdgeInsets.all(16),
                             child: Column(
                               children: [
-                                const SensorMetricsCard(),
+                                // WATER PUMP, HUMIDIFIER, EXHAUST FAN DIPINDAH KE SINI
+                                const ControlDevicesCard(),
                                 const SizedBox(height: 16),
                                 const DiseaseDetectionCard(),
-                                const SizedBox(height: 16),
-                                const SafeLimitCard(),
                                 const SizedBox(height: 16),
                                 const ArchiveDataCard(),
                                 const SizedBox(height: 16),
