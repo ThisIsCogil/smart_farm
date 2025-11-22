@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import 'dart:async';
-import 'package:flutter/material.dart';
 import '../services/mqtt_service.dart';
 
 class SensorMetricsCard extends StatefulWidget {
@@ -26,19 +24,29 @@ class _SensorMetricsCardState extends State<SensorMetricsCard> {
     _initMqtt();
   }
 
+  double _readNum(dynamic v) {
+    if (v == null) return 0;
+    if (v is num) return v.toDouble();
+    return double.tryParse(v.toString()) ?? 0;
+  }
+
   Future<void> _initMqtt() async {
     await _mqtt.connect();
 
     _sub = _mqtt.sensorsStream.listen((data) {
       setState(() {
-        // Amanin kalau key tidak ada / null
-        final t = data['temperature'];
-        final ha = data['humidity_air'];
-        final hs = data['humidity_soil'];
+        // temperature key selalu sama
+        _temperature = _readNum(data['temperature']);
 
-        if (t != null) _temperature = (t as num).toDouble();
-        if (ha != null) _humidityAir = (ha as num).toDouble();
-        if (hs != null) _humiditySoil = (hs as num).toDouble();
+        // humidity bisa "humidity_air" ATAU "humidity"
+        _humidityAir = _readNum(
+          data['humidity_air'] ?? data['humidity']
+        );
+
+        // soil moisture bisa "soil_moisture" ATAU "humidity_soil"
+        _humiditySoil = _readNum(
+          data['soil_moisture'] ?? data['humidity_soil']
+        );
       });
     });
   }

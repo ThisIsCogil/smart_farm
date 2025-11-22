@@ -12,22 +12,16 @@ class MqttService {
   bool _connected = false;
 
   // ===== STREAM STATUS AKTUATOR =====
-  final _actuatorController =
-      StreamController<Map<String, bool>>.broadcast();
-  Stream<Map<String, bool>> get actuatorsStream =>
-      _actuatorController.stream;
+  final _actuatorController = StreamController<Map<String, bool>>.broadcast();
+  Stream<Map<String, bool>> get actuatorsStream => _actuatorController.stream;
 
   // ===== STREAM SENSOR (optional) =====
-  final _sensorController =
-      StreamController<Map<String, dynamic>>.broadcast();
-  Stream<Map<String, dynamic>> get sensorsStream =>
-      _sensorController.stream;
+  final _sensorController = StreamController<Map<String, dynamic>>.broadcast();
+  Stream<Map<String, dynamic>> get sensorsStream => _sensorController.stream;
 
   // ===== STREAM LOG (optional) =====
-  final _logController =
-      StreamController<Map<String, dynamic>>.broadcast();
-  Stream<Map<String, dynamic>> get logStream =>
-      _logController.stream;
+  final _logController = StreamController<Map<String, dynamic>>.broadcast();
+  Stream<Map<String, dynamic>> get logStream => _logController.stream;
 
   Future<void> connect() async {
     if (_connected) return;
@@ -75,59 +69,56 @@ class MqttService {
   }
 
   void _onMessage(List<MqttReceivedMessage<MqttMessage>> events) {
-  for (final rec in events) {
-    final topic = rec.topic;
+    for (final rec in events) {
+      final topic = rec.topic;
 
-    final msg = rec.payload as MqttPublishMessage;
-    final payload =
-        MqttPublishPayload.bytesToStringAsString(msg.payload.message);
+      final msg = rec.payload as MqttPublishMessage;
+      final payload =
+          MqttPublishPayload.bytesToStringAsString(msg.payload.message);
 
-    // DEBUG biar kita yakin actuators masuk
-    print("TOPIC MASUK: $topic");
-    print("PAYLOAD MASUK: $payload");
+      // DEBUG biar kita yakin actuators masuk
+      print("TOPIC MASUK: $topic");
+      print("PAYLOAD MASUK: $payload");
 
-    try {
-      if (topic == 'greenhouse/coffee/actuators') {
-        final map = jsonDecode(payload) as Map<String, dynamic>;
-        final result = <String, bool>{};
+      try {
+        if (topic == 'greenhouse/coffee/actuators') {
+          final map = jsonDecode(payload) as Map<String, dynamic>;
+          final result = <String, bool>{};
 
-        bool isOn(dynamic v) {
-          final s = v.toString().toUpperCase().trim();
-          return s == 'ON' || s == '1' || s == 'TRUE';
+          bool toBool(dynamic v) {
+            if (v == null) return false;
+            final s = v.toString().toLowerCase().trim();
+            return s == 'true' || s == '1' || s == 'on';
+          }
+
+          result['pump'] = toBool(map['pump']);
+          result['fan'] = toBool(map['fan']);
+          result['humidifier'] = toBool(map['humidifier']);
+
+          _actuatorController.add(result);
         }
 
-        if (map.containsKey('pump')) result['pump'] = isOn(map['pump']);
-        if (map.containsKey('fan')) result['fan'] = isOn(map['fan']);
-        if (map.containsKey('humidifier')) {
-          result['humidifier'] = isOn(map['humidifier']);
+        if (topic == 'greenhouse/coffee/sensors') {
+          final map = jsonDecode(payload) as Map<String, dynamic>;
+          _sensorController.add(map);
         }
 
-        print("HASIL PARSE ACTUATORS: $result"); // DEBUG
-
-        _actuatorController.add(result);
+        if (topic == 'greenhouse/coffee/log') {
+          final map = jsonDecode(payload) as Map<String, dynamic>;
+          _logController.add(map);
+        }
+      } catch (e) {
+        print("ERROR PARSE di $topic => $e");
       }
-
-      if (topic == 'greenhouse/coffee/sensors') {
-        final map = jsonDecode(payload) as Map<String, dynamic>;
-        _sensorController.add(map);
-      }
-
-      if (topic == 'greenhouse/coffee/log') {
-        final map = jsonDecode(payload) as Map<String, dynamic>;
-        _logController.add(map);
-      }
-    } catch (e) {
-      print("ERROR PARSE di $topic => $e");
     }
   }
-}
 
   // ===== PUBLISH MANUAL PER DEVICE (CONTROL ENDPOINT) =====
   Future<void> publishManualControl(String deviceId, bool isOn) async {
     if (!_connected) return;
 
     final topic = 'greenhouse/coffee/control/$deviceId';
-    final payload = isOn ? 'ON' : 'OFF';
+    final payload = isOn ? '1' : '0';
 
     final builder = MqttClientPayloadBuilder();
     builder.addString(payload);
