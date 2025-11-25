@@ -22,17 +22,24 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   int _index = 0;
+  late final List<Widget> _pages;
 
-  // Pastikan tiap page scrollable agar mekanisme hide-on-scroll aktif.
-  // DashboardScreen kamu sudah scrollable. Untuk halaman lain,
-  // kalau masih pendek, tambahkan ListView/SingleChildScrollView di file masing-masing.
-  late final List<Widget> _pages = [
-    DashboardScreen(),
-    CalendarScreen(),
-    ScanPage(),
-    StatsPage(),
-    ProfilePage(),
-  ];
+  @override
+  void initState() {
+    super.initState();
+
+    // fungsi untuk ganti tab dari mana saja (termasuk dari Dashboard)
+    void changeTab(int i) {
+      setState(() => _index = i);
+    }
+
+    _pages = [
+      DashboardScreen(onChangeTab: changeTab), // ⬅ PENTING: kirim callback
+      const CalendarScreen(),
+      const ScanPage(),
+      const StatsPage(),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,18 +47,12 @@ class _AppShellState extends State<AppShell> {
       pages: _pages,
       currentIndex: _index,
       onTabChanged: (i) => setState(() => _index = i),
-
-      // Opsional: kalau ingin custom icon, isi di sini;
-      // kalau tidak diisi, akan pakai default (home, calendar, play, chart, person).
-      icons: [
+      icons: const [
         Icons.home_sharp,
         Icons.calendar_today_outlined,
         Icons.camera_alt_sharp,
         Icons.bar_chart_outlined,
-        Icons.person_outlined,
       ],
-
-      // Opsional: tweak durasi animasi
       duration: const Duration(milliseconds: 220),
     );
   }

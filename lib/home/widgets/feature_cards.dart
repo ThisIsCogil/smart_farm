@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import '../services/mqtt_service.dart';
+import '../../home/views/stats/stats_page.dart';
+import '../../home/views/scan/scan_page.dart';
+import '../../home/views/calendar/calendar_page.dart';
 
 class SensorMetricsCard extends StatefulWidget {
   const SensorMetricsCard({Key? key}) : super(key: key);
@@ -220,115 +223,142 @@ class SensorValueBox extends StatelessWidget {
 
 
 class DiseaseDetectionCard extends StatelessWidget {
-  const DiseaseDetectionCard({Key? key}) : super(key: key);
+  final VoidCallback onTap;
+  const DiseaseDetectionCard({Key? key, required this.onTap}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
-    return const MenuCard(
-        icon: Icons.bug_report_outlined,
-        iconColor: Color(0xFF27AE60),
-        title: 'Disease Detection',
-        subtitle: 'Check out plant protection');
+    return MenuCard(
+      icon: Icons.bug_report_outlined,
+      iconColor: const Color(0xFF27AE60),
+      title: 'Disease Detection',
+      subtitle: 'Check out plant protection',
+      onTap: onTap,
+    );
   }
 }
 
-
 class ArchiveDataCard extends StatelessWidget {
-  const ArchiveDataCard({Key? key}) : super(key: key);
+  final VoidCallback onTap;
+  const ArchiveDataCard({Key? key, required this.onTap}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
-    return const MenuCard(
-        icon: Icons.folder_outlined,
-        iconColor: Color(0xFF9B59B6),
-        title: 'Archive Data',
-        subtitle: 'Data of plant monitoring');
+    return MenuCard(
+      icon: Icons.folder_outlined,
+      iconColor: const Color(0xFF9B59B6),
+      title: 'Archive Data',
+      subtitle: 'Data of plant monitoring',
+      onTap: onTap,
+    );
   }
 }
 
 class DailyTaskCard extends StatelessWidget {
-  const DailyTaskCard({Key? key}) : super(key: key);
+  final VoidCallback onTap;
+  const DailyTaskCard({Key? key, required this.onTap}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
-    return const MenuCard(
-        icon: Icons.task_alt_outlined,
-        iconColor: Color(0xFFF39C12),
-        title: 'Daily Task',
-        subtitle: 'Manage daily activities');
+    return MenuCard(
+      icon: Icons.task_alt_outlined,
+      iconColor: const Color(0xFFF39C12),
+      title: 'Daily Task',
+      subtitle: 'Manage daily activities',
+      onTap: onTap,
+    );
   }
 }
+
+
 
 class MenuCard extends StatelessWidget {
   final IconData icon;
   final Color iconColor;
   final String title;
   final String subtitle;
-  const MenuCard(
-      {Key? key,
-      required this.icon,
-      required this.iconColor,
-      required this.title,
-      required this.subtitle})
-      : super(key: key);
+  final VoidCallback? onTap;        // ⬅ tambah ini
+
+  const MenuCard({
+    Key? key,
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.subtitle,
+    this.onTap,                    // ⬅ tambah ini
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: onTap,                // ⬅ panggil di sini
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 15,
-                offset: const Offset(0, 3)),
-          ]),
-      child: Row(children: [
-        Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 15,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
                 color: iconColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12)),
-            child: Icon(icon, color: iconColor, size: 24)),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF2D3436),
-                ),
+                borderRadius: BorderRadius.circular(12),
               ),
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Color(0xFF636E72),
-                ),
+              child: Icon(icon, color: iconColor, size: 24),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2D3436),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF636E72),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF6D4C41),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.arrow_forward_ios,
+                size: 16,
+                color: Color(0xFFFFFFFF),
+              ),
+            ),
+          ],
         ),
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: const Color(0xFF6D4C41),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: const Icon(
-            Icons.arrow_forward_ios,
-            size: 16,
-            color: Color(0xFFFFFFFF),
-          ),
-        ),
-      ]),
+      ),
     );
   }
 }
+
 class ServerConfigCard extends StatefulWidget {
   const ServerConfigCard({Key? key}) : super(key: key);
 
@@ -439,7 +469,7 @@ class _ServerConfigCardState extends State<ServerConfigCard> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Server AI',
+                    'Konfigurasi Server',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,

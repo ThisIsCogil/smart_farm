@@ -6,7 +6,9 @@ import '../../widgets/feature_cards.dart';
 import '../../widgets/profile_header.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({Key? key}) : super(key: key);
+  final void Function(int)? onChangeTab; // ⬅ tambah ini
+
+  const DashboardScreen({Key? key, this.onChangeTab}) : super(key: key);
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -138,18 +140,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             padding: const EdgeInsets.all(16),
                             child: Column(
                               children: [
-                                // WATER PUMP, HUMIDIFIER, EXHAUST FAN DIPINDAH KE SINI
                                 const ControlDevicesCard(),
                                 const SizedBox(height: 16),
-                                const DiseaseDetectionCard(),
-                                const SizedBox(height: 16),
-                                const ArchiveDataCard(),
-                                const SizedBox(height: 16),
-                                const DailyTaskCard(),
+
+                                // Disease Detection → tab Scan (index 2)
+                                DiseaseDetectionCard(
+                                  onTap: () => widget.onChangeTab?.call(2),
+                                ),
                                 const SizedBox(height: 16),
 
-                                ServerConfigCard(), // <= KARTU PENGATURAN SERVER BARU
+                                // Archive Data → tab Stats (index 3)
+                                ArchiveDataCard(
+                                  onTap: () => widget.onChangeTab?.call(3),
+                                ),
+                                const SizedBox(height: 16),
 
+                                // Daily Task → tab Calendar (index 1)
+                                DailyTaskCard(
+                                  onTap: () => widget.onChangeTab?.call(1),
+                                ),
+                                const SizedBox(height: 16),
+
+                                ServerConfigCard(),
                                 SizedBox(height: bottomSpace),
                               ],
                             ),

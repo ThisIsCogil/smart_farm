@@ -11,6 +11,7 @@ class StatsPage extends StatefulWidget {
 }
 
 class _StatsPageState extends State<StatsPage> {
+  // Controller yang akan ambil data dari AirQualityModel (Flask API → IoTDB)
   final StatsController c = StatsController();
 
   @override
@@ -64,80 +65,127 @@ class _StatsPageState extends State<StatsPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // ===== Header =====
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            // ===== Header - IMPROVED LAYOUT =====
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // KIRI: judul
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Air Quality',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodyMedium
-                                            ?.copyWith(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold,
-                                              color: activeColor,
-                                            ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'Graphics history',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodyMedium
-                                            ?.copyWith(
-                                              fontSize: 12,
-                                              color: Colors.grey,
-                                            ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-
-                                const SizedBox(width: 8),
-
-                                // KANAN: pill tanggal, font normal, nempel kanan, anti-overflow
-                                Flexible(
-                                  child: Align(
-                                    alignment: Alignment.centerRight,
-                                    child: InkWell(
-                                      onTap: () => c.pickAnchor(context),
+                                // Baris pertama: Judul + Tombol Reload
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Bagian kiri: Judul
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Air Quality',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodyMedium
+                                              ?.copyWith(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold,
+                                                color: activeColor,
+                                              ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Graphics history',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodyMedium
+                                              ?.copyWith(
+                                                fontSize: 12,
+                                                color: Colors.grey,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                    
+                                    // Bagian kanan: Tombol Reload
+                                    InkWell(
+                                      onTap: c.isLoading
+                                          ? null
+                                          : () {
+                                              c.loadData();
+                                            },
+                                      borderRadius: BorderRadius.circular(999),
                                       child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                          vertical: 8,
-                                        ),
+                                        padding: const EdgeInsets.all(10),
                                         decoration: BoxDecoration(
-                                          border: Border.all(
-                                              color: const Color(0xFFE0E0E0)),
+                                          color: const Color(0xFF6D4C41),
                                           borderRadius:
-                                              BorderRadius.circular(12),
+                                              BorderRadius.circular(999),
                                         ),
-                                        child: ConstrainedBox(
-                                          // Batas max lebar pill (boleh kamu sesuaikan misal 140–200)
-                                          constraints: const BoxConstraints(
-                                            maxWidth: 180,
-                                          ),
-                                          child: Text(
-                                            c.rangeLabel, // Day: "19 Nov 2025", Week: "18 Nov – 24 Nov 2025"
-                                            maxLines: 1,
-                                            softWrap: false,
-                                            overflow: TextOverflow.ellipsis,
-                                            textAlign: TextAlign.right,
-                                            style: const TextStyle(
-                                              fontSize: 12,
-                                              color: Color(0xFF5D4037),
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        ),
+                                        child: c.isLoading
+                                            ? const SizedBox(
+                                                width: 18,
+                                                height: 18,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                  valueColor:
+                                                      AlwaysStoppedAnimation<
+                                                              Color>(
+                                                          Colors.white),
+                                                ),
+                                              )
+                                            : const Icon(
+                                                Icons.refresh,
+                                                size: 18,
+                                                color: Colors.white,
+                                              ),
                                       ),
+                                    ),
+                                  ],
+                                ),
+                                
+                                const SizedBox(height: 16),
+                                
+                                // Baris kedua: Date picker
+                                InkWell(
+                                  onTap: () => c.pickAnchor(context),
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF5F5F5),
+                                      border: Border.all(
+                                          color: const Color(0xFFE0E0E0)),
+                                      borderRadius:
+                                          BorderRadius.circular(12),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Icon(
+                                              Icons.calendar_today,
+                                              size: 16,
+                                              color: activeColor.withOpacity(0.7),
+                                            ),
+                                            const SizedBox(width: 10),
+                                            Text(
+                                              c.rangeLabel,
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                                color: Color(0xFF5D4037),
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        Icon(
+                                          Icons.arrow_drop_down,
+                                          color: activeColor.withOpacity(0.7),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ),
@@ -146,9 +194,43 @@ class _StatsPageState extends State<StatsPage> {
 
                             const SizedBox(height: 30),
 
-                            // ===== Tabs (Day / Week / Month) =====
+                            // ===== Tabs (Hour / Day / Week) =====
                             Row(
                               children: [
+                                // TAB HOUR
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: () => c.changePeriod('Hour'),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 8),
+                                      decoration: BoxDecoration(
+                                        border: Border(
+                                          bottom: BorderSide(
+                                            color: c.selectedPeriod == 'Hour'
+                                                ? activeColor
+                                                : Colors.transparent,
+                                            width: 2,
+                                          ),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        'Hour',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          color: c.selectedPeriod == 'Hour'
+                                              ? activeColor
+                                              : inactiveColor,
+                                          fontWeight: c.selectedPeriod == 'Hour'
+                                              ? FontWeight.bold
+                                              : FontWeight.normal,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                                // TAB DAY
                                 Expanded(
                                   child: InkWell(
                                     onTap: () => c.changePeriod('Day'),
@@ -180,6 +262,8 @@ class _StatsPageState extends State<StatsPage> {
                                     ),
                                   ),
                                 ),
+
+                                // TAB WEEK
                                 Expanded(
                                   child: InkWell(
                                     onTap: () => c.changePeriod('Week'),
@@ -221,7 +305,8 @@ class _StatsPageState extends State<StatsPage> {
                               height: 250,
                               child: Builder(
                                 builder: (context) {
-                                  if (c.isLoading) {
+                                  if (c.isLoading && c.currentData.isEmpty) {
+                                    // kalau lagi loading awal
                                     return const Center(
                                       child: CircularProgressIndicator(),
                                     );
@@ -265,6 +350,14 @@ class _StatsPageState extends State<StatsPage> {
                                               final i = value.toInt();
                                               if (i >= 0 &&
                                                   i < c.currentData.length) {
+                                                // Kurangi label biar tidak terlalu rapat di mode Hour
+                                                if (c.selectedPeriod ==
+                                                        'Hour' &&
+                                                    i % 5 != 0) {
+                                                  return const SizedBox
+                                                      .shrink();
+                                                }
+
                                                 return Padding(
                                                   padding:
                                                       const EdgeInsets.only(

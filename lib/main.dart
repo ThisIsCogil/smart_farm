@@ -30,7 +30,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Smart Greenhouse Coffee',
-      initialRoute: '/auth',
+      initialRoute: '/home',
       routes: {
         '/auth': (context) => const AuthPage(),
         '/home': (context) => const AppShell(),
