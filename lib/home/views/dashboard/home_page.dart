@@ -112,7 +112,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               // Konten atas gambar
                               Column(
                                 children: [
-                                  const ProfileHeader(),
+                                  ProfileHeader(),
                                   Padding(
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 16),
