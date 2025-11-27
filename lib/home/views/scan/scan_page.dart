@@ -30,7 +30,7 @@ class _ScanPageState extends State<ScanPage> {
   /// base URL server (tanpa /predict)
   String _serverBaseUrl = 'http://10.0.2.2:8000'; // default (emulator)
 
-  String get _predictUrl => '$_serverBaseUrl/predict';
+  String get _predictUrl => '$_serverBaseUrl/api/predict';
 
   @override
   void initState() {
