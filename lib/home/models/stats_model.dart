@@ -54,98 +54,116 @@ class AirQualityModel {
     return list.cast<Map<String, dynamic>>();
   }
 
-  // ===================== HOUR -> per menit =====================
-  /// Data untuk 1 jam tertentu (per menit).
-  /// Contoh: anchorDate = 25 Nov 2025, 14:xx → ambil menit 14:00–14:59 di hari itu.
-  Future<List<Map<String, dynamic>>> fetchHourData(DateTime anchor) async {
-    // Ambil 24 jam terakhir dari backend
-    final points = await _fetchPointsFromApi('/api/sensors/daily?hours=24');
+ Future<List<Map<String, dynamic>>> fetchHourData(DateTime anchor) async {
+  // Hitung berapa jam mundur dari sekarang ke anchor
+  final now = DateTime.now();
+  final diff = now.difference(anchor);
 
-    // minute: 0..59
-    final Map<int, _Agg> aggByMinute = {};
+  // Tambah 1 jam untuk jaga-jaga full 1 jam tsb,
+  // dan minimal tetap 24 jam (biar dekat2 sekarang tidak boros)
+  var hoursBack = diff.inHours + 1;
+  if (hoursBack < 24) hoursBack = 24;
 
-    for (final p in points) {
-      final ts = _parseDateTime(p['timestamp']).toLocal();
+  // Minta data ke backend dengan window yg lebih panjang
+  final points =
+      await _fetchPointsFromApi('/api/sensors/daily?hours=$hoursBack');
 
-      // Filter data yang hanya dari hari dan jam yang sama dengan [anchor]
-      if (ts.year == anchor.year &&
-          ts.month == anchor.month &&
-          ts.day == anchor.day &&
-          ts.hour == anchor.hour) {
-        final minute = ts.minute;
+  // minute: 0..59
+  final Map<int, _Agg> aggByMinute = {};
 
-        final temp = _numOrZero(p['temperature']).toDouble();
-        final hum = _numOrZero(p['humidity']).toDouble();
-        final soil = _numOrZero(p['soil_moisture']).toDouble();
+  for (final p in points) {
+    final ts = _parseDateTime(p['timestamp']).toLocal();
 
-        final agg = aggByMinute.putIfAbsent(minute, () => _Agg());
-        agg.add(temp: temp, hum: hum, soil: soil);
-      }
+    // Filter data yang hanya dari hari dan jam yang sama dengan [anchor]
+    if (ts.year == anchor.year &&
+        ts.month == anchor.month &&
+        ts.day == anchor.day &&
+        ts.hour == anchor.hour) {
+      final minute = ts.minute;
+
+      final temp = _numOrZero(p['temperature']).toDouble();
+      final hum = _numOrZero(p['humidity']).toDouble();
+      final soil = _numOrZero(p['soil_moisture']).toDouble();
+
+      final agg = aggByMinute.putIfAbsent(minute, () => _Agg());
+      agg.add(temp: temp, hum: hum, soil: soil);
     }
-
-    final entries = aggByMinute.entries.toList()
-      ..sort((a, b) => a.key.compareTo(b.key));
-
-    final hh = anchor.hour.toString().padLeft(2, '0');
-
-    return entries.map((e) {
-      final mm = e.key;
-      final agg = e.value;
-
-      final label = '$hh:${mm.toString().padLeft(2, '0')}';
-
-      return {
-        'day': label, // label X axis & Excel
-        'temperature': agg.avgTemp.round(),
-        'humidity': agg.avgHum.round(),
-        'soil': agg.avgSoil.round(),
-      };
-    }).toList();
   }
+
+  final entries = aggByMinute.entries.toList()
+    ..sort((a, b) => a.key.compareTo(b.key));
+
+  final hh = anchor.hour.toString().padLeft(2, '0');
+
+  return entries.map((e) {
+    final mm = e.key;
+    final agg = e.value;
+
+    final label = '$hh:${mm.toString().padLeft(2, '0')}';
+
+    return {
+      'day': label,
+      'temperature': agg.avgTemp.round(),
+      'humidity': agg.avgHum.round(),
+      'soil': agg.avgSoil.round(),
+    };
+  }).toList();
+}
+
 
   // ===================== DAY -> per jam =====================
   /// Data untuk 1 hari (per jam).
   Future<List<Map<String, dynamic>>> fetchDayData(DateTime date) async {
-    // Ambil 24 jam terakhir dari backend
-    final points = await _fetchPointsFromApi('/api/sensors/daily?hours=24');
+  final now = DateTime.now();
+  final startOfDay = DateTime(date.year, date.month, date.day);
+  final diff = now.difference(startOfDay);
 
-    final Map<int, _Agg> aggByHour = {};
+  // Tambah 24 jam supaya full 1 hari,
+  // dan minimal 24 jam juga.
+  var hoursBack = diff.inHours + 24;
+  if (hoursBack < 24) hoursBack = 24;
 
-    for (final p in points) {
-      final ts = _parseDateTime(p['timestamp']).toLocal();
+  final points =
+      await _fetchPointsFromApi('/api/sensors/daily?hours=$hoursBack');
 
-      // Filter hanya tanggal yang sama dengan [date]
-      if (ts.year == date.year &&
-          ts.month == date.month &&
-          ts.day == date.day) {
-        final hour = ts.hour;
+  final Map<int, _Agg> aggByHour = {};
 
-        final temp = _numOrZero(p['temperature']).toDouble();
-        final hum = _numOrZero(p['humidity']).toDouble();
-        final soil = _numOrZero(p['soil_moisture']).toDouble();
+  for (final p in points) {
+    final ts = _parseDateTime(p['timestamp']).toLocal();
 
-        final agg = aggByHour.putIfAbsent(hour, () => _Agg());
-        agg.add(temp: temp, hum: hum, soil: soil);
-      }
+    // Filter hanya tanggal yang sama dengan [date]
+    if (ts.year == date.year &&
+        ts.month == date.month &&
+        ts.day == date.day) {
+      final hour = ts.hour;
+
+      final temp = _numOrZero(p['temperature']).toDouble();
+      final hum = _numOrZero(p['humidity']).toDouble();
+      final soil = _numOrZero(p['soil_moisture']).toDouble();
+
+      final agg = aggByHour.putIfAbsent(hour, () => _Agg());
+      agg.add(temp: temp, hum: hum, soil: soil);
     }
-
-    final entries = aggByHour.entries.toList()
-      ..sort((a, b) => a.key.compareTo(b.key));
-
-    return entries.map((e) {
-      final hour = e.key;
-      final agg = e.value;
-
-      final label = '${hour.toString().padLeft(2, '0')}:00';
-
-      return {
-        'day': label,
-        'temperature': agg.avgTemp.round(),
-        'humidity': agg.avgHum.round(),
-        'soil': agg.avgSoil.round(),
-      };
-    }).toList();
   }
+
+  final entries = aggByHour.entries.toList()
+    ..sort((a, b) => a.key.compareTo(b.key));
+
+  return entries.map((e) {
+    final hour = e.key;
+    final agg = e.value;
+
+    final label = '${hour.toString().padLeft(2, '0')}:00';
+
+    return {
+      'day': label,
+      'temperature': agg.avgTemp.round(),
+      'humidity': agg.avgHum.round(),
+      'soil': agg.avgSoil.round(),
+    };
+  }).toList();
+}
+
 
   // ===================== WEEK -> per hari =====================
   /// Data untuk 1 minggu (per hari).

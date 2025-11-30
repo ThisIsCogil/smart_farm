@@ -71,12 +71,14 @@ class _StatsPageState extends State<StatsPage> {
                               children: [
                                 // Baris pertama: Judul + Tombol Reload
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     // Bagian kiri: Judul
                                     Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           'Air Quality',
@@ -102,7 +104,7 @@ class _StatsPageState extends State<StatsPage> {
                                         ),
                                       ],
                                     ),
-                                    
+
                                     // Bagian kanan: Tombol Reload
                                     InkWell(
                                       onTap: c.isLoading
@@ -127,8 +129,7 @@ class _StatsPageState extends State<StatsPage> {
                                                   strokeWidth: 2,
                                                   valueColor:
                                                       AlwaysStoppedAnimation<
-                                                              Color>(
-                                                          Colors.white),
+                                                          Color>(Colors.white),
                                                 ),
                                               )
                                             : const Icon(
@@ -140,9 +141,9 @@ class _StatsPageState extends State<StatsPage> {
                                     ),
                                   ],
                                 ),
-                                
+
                                 const SizedBox(height: 16),
-                                
+
                                 // Baris kedua: Date picker
                                 InkWell(
                                   onTap: () => c.pickAnchor(context),
@@ -157,18 +158,19 @@ class _StatsPageState extends State<StatsPage> {
                                       color: const Color(0xFFF5F5F5),
                                       border: Border.all(
                                           color: const Color(0xFFE0E0E0)),
-                                      borderRadius:
-                                          BorderRadius.circular(12),
+                                      borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
                                       children: [
                                         Row(
                                           children: [
                                             Icon(
                                               Icons.calendar_today,
                                               size: 16,
-                                              color: activeColor.withOpacity(0.7),
+                                              color:
+                                                  activeColor.withOpacity(0.7),
                                             ),
                                             const SizedBox(width: 10),
                                             Text(
@@ -300,13 +302,14 @@ class _StatsPageState extends State<StatsPage> {
 
                             const SizedBox(height: 30),
 
-                            // ===== Chart =====
+// Ganti bagian Chart dengan kode berikut:
+
+// ===== Line Chart =====
                             SizedBox(
-                              height: 250,
+                              height: 290,
                               child: Builder(
                                 builder: (context) {
                                   if (c.isLoading && c.currentData.isEmpty) {
-                                    // kalau lagi loading awal
                                     return const Center(
                                       child: CircularProgressIndicator(),
                                     );
@@ -323,140 +326,296 @@ class _StatsPageState extends State<StatsPage> {
                                     );
                                   }
 
-                                  return BarChart(
-                                    BarChartData(
-                                      alignment: BarChartAlignment.spaceAround,
-                                      maxY: 100,
-                                      barTouchData: BarTouchData(
-                                        enabled: true,
-                                        touchTooltipData: BarTouchTooltipData(
-                                          getTooltipItem: (group, groupIndex,
-                                                  rod, rodIndex) =>
-                                              BarTooltipItem(
-                                            '${rod.toY.round()}',
-                                            const TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      titlesData: FlTitlesData(
-                                        show: true,
-                                        bottomTitles: AxisTitles(
-                                          sideTitles: SideTitles(
-                                            showTitles: true,
-                                            getTitlesWidget: (value, meta) {
-                                              final i = value.toInt();
-                                              if (i >= 0 &&
-                                                  i < c.currentData.length) {
-                                                // Kurangi label biar tidak terlalu rapat di mode Hour
-                                                if (c.selectedPeriod ==
-                                                        'Hour' &&
-                                                    i % 5 != 0) {
-                                                  return const SizedBox
-                                                      .shrink();
-                                                }
+                                  // Atur lebar chart berdasarkan jumlah data
+                                  final groupsCount = c.currentData.length;
+                                  final pointWidth =
+                                      c.selectedPeriod == 'Hour' ? 30.0 : 45.0;
+                                  final minWidth =
+                                      MediaQuery.of(context).size.width - 80;
+                                  // Tambah padding kanan agar data terakhir tidak terpotong
+                                  final chartWidth = (groupsCount * pointWidth)
+                                          .clamp(minWidth, 10000.0) +
+                                      40;
 
-                                                return Padding(
-                                                  padding:
-                                                      const EdgeInsets.only(
-                                                          top: 8.0),
-                                                  child: Text(
-                                                    c.currentData[i]['day']
-                                                        .toString(),
-                                                    style: const TextStyle(
-                                                      fontSize: 10,
-                                                      color: Colors.grey,
-                                                    ),
-                                                  ),
-                                                );
-                                              }
-                                              return const SizedBox.shrink();
-                                            },
-                                          ),
-                                        ),
-                                        leftTitles: AxisTitles(
-                                          sideTitles: SideTitles(
-                                            showTitles: true,
-                                            interval: 20,
-                                            getTitlesWidget: (value, meta) =>
-                                                Text(
-                                              value.toInt().toString(),
-                                              style: const TextStyle(
-                                                fontSize: 10,
-                                                color: Colors.grey,
-                                              ),
-                                            ),
-                                            reservedSize: 30,
-                                          ),
-                                        ),
-                                        topTitles: const AxisTitles(
-                                          sideTitles:
-                                              SideTitles(showTitles: false),
-                                        ),
-                                        rightTitles: const AxisTitles(
-                                          sideTitles:
-                                              SideTitles(showTitles: false),
-                                        ),
-                                      ),
-                                      gridData: FlGridData(
-                                        show: true,
-                                        drawVerticalLine: false,
-                                        horizontalInterval: 20,
-                                        getDrawingHorizontalLine: (value) =>
-                                            const FlLine(
-                                          color: Color(0xFFE0E0E0),
-                                          strokeWidth: 1,
-                                          dashArray: [5, 5],
-                                        ),
-                                      ),
-                                      borderData: FlBorderData(show: false),
+                                  // Prepare data spots untuk setiap line
+                                  final tempSpots = <FlSpot>[];
+                                  final humidSpots = <FlSpot>[];
+                                  final soilSpots = <FlSpot>[];
 
-                                      // ===== 3 bar: temp, hum, soil =====
-                                      barGroups: List.generate(
-                                        c.currentData.length,
-                                        (index) => BarChartGroupData(
-                                          x: index,
-                                          barsSpace: 4,
-                                          barRods: [
-                                            // Temperature
-                                            BarChartRodData(
-                                              toY: (c.currentData[index]
-                                                      ['temperature'] as num)
-                                                  .toDouble(),
-                                              color: const Color(0xFF72bcd4),
-                                              width: 8,
-                                              borderRadius:
-                                                  const BorderRadius.vertical(
-                                                top: Radius.circular(4),
+                                  for (int i = 0;
+                                      i < c.currentData.length;
+                                      i++) {
+                                    tempSpots.add(FlSpot(
+                                      i.toDouble(),
+                                      (c.currentData[i]['temperature'] as num)
+                                          .toDouble(),
+                                    ));
+                                    humidSpots.add(FlSpot(
+                                      i.toDouble(),
+                                      (c.currentData[i]['humidity'] as num)
+                                          .toDouble(),
+                                    ));
+                                    soilSpots.add(FlSpot(
+                                      i.toDouble(),
+                                      (c.currentData[i]['soil'] as num)
+                                          .toDouble(),
+                                    ));
+                                  }
+
+                                  return Padding(
+                                    padding: const EdgeInsets.only(
+                                        top: 15, bottom: 10),
+                                    child: SingleChildScrollView(
+                                      scrollDirection: Axis.horizontal,
+                                      padding: const EdgeInsets.only(right: 20),
+                                      child: SizedBox(
+                                        width: chartWidth,
+                                        child: LineChart(
+                                          LineChartData(
+                                            maxY:
+                                                105, // Naikkan maxY sedikit untuk memberi ruang
+                                            minY: 0,
+                                            lineTouchData: LineTouchData(
+                                              enabled: true,
+                                              touchTooltipData:
+                                                  LineTouchTooltipData(
+                                                fitInsideVertically: true,
+                                                fitInsideHorizontally: true,
+                                                getTooltipColor:
+                                                    (touchedSpot) =>
+                                                        Colors.black87,
+                                                tooltipRoundedRadius: 8,
+                                                tooltipPadding:
+                                                    const EdgeInsets.symmetric(
+                                                  horizontal: 12,
+                                                  vertical: 8,
+                                                ),
+                                                getTooltipItems:
+                                                    (List<LineBarSpot>
+                                                        touchedSpots) {
+                                                  return touchedSpots
+                                                      .map((spot) {
+                                                    String label = '';
+                                                    if (spot.barIndex == 0)
+                                                      label = 'Temp';
+                                                    if (spot.barIndex == 1)
+                                                      label = 'Humid';
+                                                    if (spot.barIndex == 2)
+                                                      label = 'Soil';
+
+                                                    return LineTooltipItem(
+                                                      '$label: ${spot.y.round()}',
+                                                      const TextStyle(
+                                                        color: Colors.white,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        fontSize: 11,
+                                                      ),
+                                                    );
+                                                  }).toList();
+                                                },
                                               ),
                                             ),
-                                            // Humidity
-                                            BarChartRodData(
-                                              toY: (c.currentData[index]
-                                                      ['humidity'] as num)
-                                                  .toDouble(),
-                                              color: const Color(0xFF4CAF50),
-                                              width: 8,
-                                              borderRadius:
-                                                  const BorderRadius.vertical(
-                                                top: Radius.circular(4),
+
+                                            titlesData: FlTitlesData(
+                                              show: true,
+                                              bottomTitles: AxisTitles(
+                                                sideTitles: SideTitles(
+                                                  showTitles: true,
+                                                  interval: 1,
+                                                  getTitlesWidget:
+                                                      (value, meta) {
+                                                    final i = value.toInt();
+                                                    if (i >= 0 &&
+                                                        i <
+                                                            c.currentData
+                                                                .length) {
+                                                      // Tampilkan label setiap 3 point untuk Hour
+                                                      if (c.selectedPeriod ==
+                                                              'Hour' &&
+                                                          i % 3 != 0) {
+                                                        return const SizedBox
+                                                            .shrink();
+                                                      }
+                                                      // Untuk Week, tampilkan semua hari
+                                                      // Untuk Day, tampilkan semua atau setiap 2 jika terlalu banyak
+                                                      if (c
+                                                                  .selectedPeriod ==
+                                                              'Day' &&
+                                                          c.currentData.length >
+                                                              15 &&
+                                                          i % 2 != 0) {
+                                                        return const SizedBox
+                                                            .shrink();
+                                                      }
+
+                                                      return Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .only(top: 8.0),
+                                                        child: Text(
+                                                          c.currentData[i]
+                                                                  ['day']
+                                                              .toString(),
+                                                          style:
+                                                              const TextStyle(
+                                                            fontSize: 10,
+                                                            color: Colors.grey,
+                                                            fontWeight:
+                                                                FontWeight.w500,
+                                                          ),
+                                                        ),
+                                                      );
+                                                    }
+                                                    return const SizedBox
+                                                        .shrink();
+                                                  },
+                                                ),
+                                              ),
+                                              leftTitles: AxisTitles(
+                                                sideTitles: SideTitles(
+                                                  showTitles: true,
+                                                  interval: 20,
+                                                  reservedSize: 40,
+                                                  getTitlesWidget:
+                                                      (value, meta) {
+                                                    // Hanya tampilkan 0, 20, 40, 60, 80, 100
+                                                    if (value < 0 ||
+                                                        value > 100) {
+                                                      return const SizedBox
+                                                          .shrink();
+                                                    }
+                                                    return Padding(
+                                                      padding:
+                                                          const EdgeInsets.only(
+                                                              right: 8),
+                                                      child: Text(
+                                                        value
+                                                            .toInt()
+                                                            .toString(),
+                                                        style: const TextStyle(
+                                                          fontSize: 10,
+                                                          color: Colors.grey,
+                                                          fontWeight:
+                                                              FontWeight.w500,
+                                                        ),
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
+                                              ),
+                                              topTitles: const AxisTitles(
+                                                sideTitles: SideTitles(
+                                                    showTitles: false),
+                                              ),
+                                              rightTitles: const AxisTitles(
+                                                sideTitles: SideTitles(
+                                                    showTitles: false),
                                               ),
                                             ),
-                                            // Soil
-                                            BarChartRodData(
-                                              toY: (c.currentData[index]['soil']
-                                                      as num)
-                                                  .toDouble(),
-                                              color: activeColor,
-                                              width: 8,
-                                              borderRadius:
-                                                  const BorderRadius.vertical(
-                                                top: Radius.circular(4),
+                                            gridData: FlGridData(
+                                              show: true,
+                                              drawVerticalLine: false,
+                                              horizontalInterval: 20,
+                                              getDrawingHorizontalLine:
+                                                  (value) => const FlLine(
+                                                color: Color(0xFFE0E0E0),
+                                                strokeWidth: 1,
+                                                dashArray: [5, 5],
                                               ),
                                             ),
-                                          ],
+                                            borderData: FlBorderData(
+                                              show: true,
+                                              border: Border(
+                                                left: BorderSide(
+                                                    color:
+                                                        Colors.grey.shade300),
+                                                bottom: BorderSide(
+                                                    color:
+                                                        Colors.grey.shade300),
+                                              ),
+                                            ),
+                                            lineBarsData: [
+                                              // Temperature Line
+                                              LineChartBarData(
+                                                spots: tempSpots,
+                                                isCurved: true,
+                                                color: const Color(0xFF4CAF50),
+                                                barWidth: 3,
+                                                isStrokeCapRound: true,
+                                                dotData: FlDotData(
+                                                  show: true,
+                                                  getDotPainter: (spot, percent,
+                                                      barData, index) {
+                                                    return FlDotCirclePainter(
+                                                      radius: 4,
+                                                      color: const Color(
+                                                          0xFF4CAF50),
+                                                      strokeWidth: 2,
+                                                      strokeColor: Colors.white,
+                                                    );
+                                                  },
+                                                ),
+                                                belowBarData: BarAreaData(
+                                                  show: true,
+                                                  color: const Color(0xFF72bcd4)
+                                                      .withOpacity(0.1),
+                                                ),
+                                              ),
+                                              // Humidity Line
+                                              LineChartBarData(
+                                                spots: humidSpots,
+                                                isCurved: true,
+                                                color: const Color(0xFF72bcd4),
+                                                barWidth: 3,
+                                                isStrokeCapRound: true,
+                                                dotData: FlDotData(
+                                                  show: true,
+                                                  getDotPainter: (spot, percent,
+                                                      barData, index) {
+                                                    return FlDotCirclePainter(
+                                                      radius: 4,
+                                                      color: const Color(
+                                                          0xFF72bcd4),
+                                                      strokeWidth: 2,
+                                                      strokeColor: Colors.white,
+                                                    );
+                                                  },
+                                                ),
+                                                belowBarData: BarAreaData(
+                                                  show: true,
+                                                  color: const Color(0xFF4CAF50)
+                                                      .withOpacity(0.1),
+                                                ),
+                                              ),
+                                              // Soil Line
+                                              LineChartBarData(
+                                                spots: soilSpots,
+                                                isCurved: true,
+                                                color: const Color(0xFFE67E22),
+                                                barWidth: 3,
+                                                isStrokeCapRound: true,
+                                                dotData: FlDotData(
+                                                  show: true,
+                                                  getDotPainter: (spot, percent,
+                                                      barData, index) {
+                                                    return FlDotCirclePainter(
+                                                      radius: 4,
+                                                      color: const Color(
+                                                          0xFFE67E22),
+                                                      strokeWidth: 2,
+                                                      strokeColor: Colors.white,
+                                                    );
+                                                  },
+                                                ),
+                                                belowBarData: BarAreaData(
+                                                  show: true,
+                                                  color: const Color(0xFF6D4C41)
+                                                      .withOpacity(0.1),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -464,18 +623,17 @@ class _StatsPageState extends State<StatsPage> {
                                 },
                               ),
                             ),
-
                             const SizedBox(height: 20),
 
                             // ===== Legend =====
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                _buildLegend('Temp', const Color(0xFF72bcd4)),
+                                _buildLegend('Temp', const Color(0xFF4CAF50)),
                                 const SizedBox(width: 16),
-                                _buildLegend('Humid', const Color(0xFF4CAF50)),
+                                _buildLegend('Humid', const Color(0xFF72bcd4)),
                                 const SizedBox(width: 16),
-                                _buildLegend('Soil', activeColor),
+                                _buildLegend('Soil', const Color(0xFFE67E22)),
                               ],
                             ),
                           ],

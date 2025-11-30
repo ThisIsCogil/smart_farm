@@ -1,14 +1,18 @@
 import 'dart:convert';
 import 'dart:io';
-import 'diagnosis_history_page.dart'; // sesuaikan path kalau beda folder
+
+import 'diagnosis_history_page.dart'; // sesuaikan path
+import 'diagnosis_result.dart'; // halaman hasil
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-
-// ==== TAMBAHAN: import Supabase ====
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+// ===== TAMBAHAN: Image Cropper =====
+import 'package:image_cropper/image_cropper.dart';
 
 class ScanPage extends StatefulWidget {
   const ScanPage({Key? key}) : super(key: key);
@@ -56,7 +60,6 @@ class _ScanPageState extends State<ScanPage> {
       );
     }
   }
-  // ===================================================
 
   /// Detail penyakit: deskripsi & penanganan.
   /// SESUAIKAN dengan label_name dari labels.json di server.
@@ -97,35 +100,79 @@ class _ScanPageState extends State<ScanPage> {
     final fileName = 'leaf_${DateTime.now().millisecondsSinceEpoch}.jpg';
     final bytes = await file.readAsBytes();
 
-    // upload binary ke bucket leaf-images
     await client.storage.from('leaf-images').uploadBinary(
           fileName,
           bytes,
           fileOptions: const FileOptions(contentType: 'image/jpeg'),
         );
 
-    // ambil public URL (atau pakai signed URL kalau mau lebih aman)
     final publicUrl = client.storage.from('leaf-images').getPublicUrl(fileName);
-
     return publicUrl;
   }
 
   /// Simpan hasil deteksi ke tabel leaf_diagnoses di Supabase.
-  /// TIDAK pakai auth, jadi tidak ada user_id.
-  Future<void> _saveDiagnosisToSupabase({
+  /// prediction = hasil yang SUDAH di-normalisasi (label_name, confidence 0–1, probabilities 0–1, severity_percent 0–100).
+  Future<String?> _saveDiagnosisToSupabase({
     required String imageUrl,
     required Map<String, dynamic> prediction,
   }) async {
     final client = Supabase.instance.client;
 
-    await client.from('leaf_diagnoses').insert({
-      'image_url': imageUrl,
-      'label_index': prediction['label_index'],
-      'label_name': prediction['label_name'],
-      'confidence': prediction['confidence'],
-      'probabilities': prediction['probabilities'],
-      // kolom lain seperti device_name / notes bisa ditambah di sini kalau ada
-    });
+    try {
+      final inserted = await client
+          .from('leaf_diagnoses')
+          .insert({
+            'image_url': imageUrl,
+            'label_index': prediction['label_index'],
+            'label_name': prediction['label_name'],
+            'confidence': prediction['confidence'],
+            'probabilities': prediction['probabilities'],
+            'severity_percent': prediction['severity_percent'],
+            'notes': null,
+          })
+          .select()
+          .single();
+
+      final id = inserted['id']?.toString();
+      debugPrint('INSERT leaf_diagnoses OK, id = $id');
+      return id;
+    } catch (e) {
+      debugPrint('GAGAL INSERT leaf_diagnoses: $e');
+      return null;
+    }
+  }
+
+  // ================== IMAGE CROPPER HELPER ==================
+
+  Future<File?> _cropImage(String path) async {
+    try {
+      final cropped = await ImageCropper().cropImage(
+        sourcePath: path,
+        aspectRatioPresets: const [
+          CropAspectRatioPreset.square,
+          CropAspectRatioPreset.original,
+          CropAspectRatioPreset.ratio4x3,
+        ],
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Crop Leaf Image',
+            toolbarColor: Color(0xFF5D4037),
+            toolbarWidgetColor: Colors.white,
+            initAspectRatio: CropAspectRatioPreset.square,
+            lockAspectRatio: false,
+          ),
+          IOSUiSettings(
+            title: 'Crop Leaf Image',
+          ),
+        ],
+      );
+
+      if (cropped == null) return null;
+      return File(cropped.path);
+    } catch (e) {
+      debugPrint('Error cropping image: $e');
+      return null;
+    }
   }
 
   // ===============================================================
@@ -136,14 +183,21 @@ class _ScanPageState extends State<ScanPage> {
         source: ImageSource.camera,
         imageQuality: 80,
       );
-      if (image != null) {
-        setState(() {
-          _selectedImage = File(image.path);
-          _predictionResult = null; // reset hasil lama
-        });
-        debugPrint('Image captured: ${image.path}');
-        await _predictDisease(); // otomatis kirim ke API setelah ambil foto
+
+      if (image == null) return;
+
+      final File? croppedFile = await _cropImage(image.path);
+      if (croppedFile == null) {
+        return;
       }
+
+      setState(() {
+        _selectedImage = croppedFile;
+        _predictionResult = null; // reset hasil lama
+      });
+      debugPrint('Image captured & cropped: ${croppedFile.path}');
+
+      await _predictDisease();
     } catch (e) {
       debugPrint('Error opening camera: $e');
       if (mounted) {
@@ -160,14 +214,21 @@ class _ScanPageState extends State<ScanPage> {
         source: ImageSource.gallery,
         imageQuality: 80,
       );
-      if (image != null) {
-        setState(() {
-          _selectedImage = File(image.path);
-          _predictionResult = null; // reset hasil lama
-        });
-        debugPrint('Image selected: ${image.path}');
-        await _predictDisease(); // otomatis kirim ke API setelah pilih galeri
+
+      if (image == null) return;
+
+      final File? croppedFile = await _cropImage(image.path);
+      if (croppedFile == null) {
+        return;
       }
+
+      setState(() {
+        _selectedImage = croppedFile;
+        _predictionResult = null; // reset hasil lama
+      });
+      debugPrint('Image selected & cropped: ${croppedFile.path}');
+
+      await _predictDisease();
     } catch (e) {
       debugPrint('Error opening gallery: $e');
       if (mounted) {
@@ -177,6 +238,110 @@ class _ScanPageState extends State<ScanPage> {
       }
     }
   }
+
+  /// ====== MAPPING PAYLOAD API → FORMAT INTERNAL APP ======
+  ///
+  /// Input: payload lengkap dari server (yang ada leaf_analysis, metadata, prediction)
+  /// Output: map dengan:
+  ///  - label_index (int)
+  ///  - label_name (String)
+  ///  - confidence (double 0–1)
+  ///  - probabilities (Map<String, double> 0–1)
+  ///  - severity_percent (double 0–100)
+  Map<String, dynamic> _mapApiPayloadToPrediction(
+    Map<String, dynamic> apiData) {
+  final pred = (apiData['prediction'] ?? {}) as Map<String, dynamic>;
+
+  // ========== 1. Ambil probabilities mentah dari server ==========
+  final probsRaw =
+      (pred['all_probabilities'] ?? <String, dynamic>{}) as Map<String, dynamic>;
+
+  // Normalisasi ke 0–1
+  final probs01 = <String, double>{};
+  probsRaw.forEach((key, value) {
+    if (value is num) {
+      final v = value.toDouble();
+      // Kalau API kirim 99.99 → jadi 0.9999
+      probs01[key] = v > 1.0 ? v / 100.0 : v;
+    }
+  });
+
+  // ========== 2. Tentukan label dari probabilities (argmax) ==========
+  String bestLabel = 'Unknown';
+  double bestProb = -1.0;
+
+  probs01.forEach((label, p) {
+    if (p > bestProb) {
+      bestProb = p;
+      bestLabel = label;
+    }
+  });
+
+  // fallback: kalau map kosong, pakai 'class' dari server
+  final serverClass = pred['class']?.toString();
+  if (bestLabel == 'Unknown' && serverClass != null) {
+    bestLabel = serverClass;
+  }
+
+  // ========== 3. Confidence utama ==========
+  // Bisa pakai:
+  // - prob tertinggi (bestProb), atau
+  // - field confidence dari server (rawConf) yang dinormalisasi
+  // Di sini aku pakai bestProb supaya konsisten dengan label.
+  double confidence01 = 0.0;
+  if (bestProb >= 0.0) {
+    confidence01 = bestProb;
+  } else {
+    final rawConf = pred['confidence'];
+    if (rawConf is num) {
+      final confDouble = rawConf.toDouble();
+      confidence01 = confDouble > 1.0 ? confDouble / 100.0 : confDouble;
+    }
+  }
+
+  // ========== 4. label_index sesuai urutan model ==========
+  const labelsOrder = ['Healthy', 'Miner', 'Phoma', 'Rust'];
+  int labelIndex = labelsOrder.indexOf(bestLabel);
+  if (labelIndex < 0) labelIndex = 0;
+
+  // ========== 5. HITUNG TINGKAT KEPARAHAN DARI LEAF_ANALYSIS ==========
+  Map<String, dynamic>? leafAnalysis;
+  final la = apiData['leaf_analysis'];
+  if (la is Map<String, dynamic>) {
+    leafAnalysis = la;
+  }
+
+  double severityPercent = 0.0;
+  if (leafAnalysis != null) {
+    final brownInLeaf = leafAnalysis['brown_in_leaf_percentage'];
+    if (brownInLeaf is num) {
+      severityPercent = brownInLeaf.toDouble(); // sudah dalam %
+    } else {
+      final brown = leafAnalysis['brown_percentage'];
+      if (brown is num) {
+        severityPercent = brown.toDouble();
+      }
+    }
+  }
+
+  // Kalau label Healthy, paksa 0 supaya tidak membingungkan
+  if (bestLabel == 'Healthy') {
+    severityPercent = 0.0;
+  }
+
+  return {
+    'label_index': labelIndex,
+    'label_name': bestLabel,        // ⬅️ SEKARANG PAKAI HASIL ARGMAX
+    'confidence': confidence01,     // 0–1 (di UI dikali 100)
+    'probabilities': probs01,       // 0–1
+    'leaf_analysis': leafAnalysis,
+    'metadata': apiData['metadata'],
+    'timestamp': apiData['timestamp'],
+    'severity_percent': severityPercent,
+    'server_class': serverClass,    // opsional: bisa dilihat saat debug
+  };
+}
+
 
   Future<void> _predictDisease() async {
     if (_selectedImage == null) {
@@ -219,18 +384,24 @@ class _ScanPageState extends State<ScanPage> {
       final responseBody = await streamedResponse.stream.bytesToString();
 
       if (streamedResponse.statusCode == 200) {
-        final data = jsonDecode(responseBody) as Map<String, dynamic>;
-        debugPrint('Prediction result: $data');
+        // ====== 1. Decode payload asli dari server ======
+        final rawData = jsonDecode(responseBody) as Map<String, dynamic>;
+        debugPrint('Raw prediction result: $rawData');
 
-        // ====== LANGKAH BARU: SIMPAN KE SUPABASE ======
+        // ====== 2. Mapping ke format internal app ======
+        final normalizedPrediction = _mapApiPayloadToPrediction(rawData);
+        debugPrint('Normalized prediction: $normalizedPrediction');
+
+        // ====== 3. SIMPAN KE SUPABASE ======
+        String? diagnosisId;
         try {
           // 1. Upload gambar ke Supabase Storage
           final imageUrl = await _uploadLeafImageToSupabase(_selectedImage!);
 
-          // 2. Insert hasil prediksi + image_url ke tabel leaf_diagnoses
-          await _saveDiagnosisToSupabase(
+          // 2. Insert hasil prediksi + image_url ke tabel leaf_diagnoses, ambil uuid
+          diagnosisId = await _saveDiagnosisToSupabase(
             imageUrl: imageUrl,
-            prediction: data,
+            prediction: normalizedPrediction,
           );
 
           if (mounted) {
@@ -251,11 +422,29 @@ class _ScanPageState extends State<ScanPage> {
             );
           }
         }
-        // ===============================================
 
+        // ====== 4. Update state & navigate ke halaman hasil ======
         setState(() {
-          _predictionResult = data;
+          _predictionResult = normalizedPrediction;
         });
+
+        final label = normalizedPrediction['label_name']?.toString();
+        final detail = _diseaseDetails[label];
+
+        if (!mounted) return;
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => DiagnosisResultPage(
+              diagnosisId: diagnosisId, // UUID / String?
+              imageFile: _selectedImage!,
+              prediction: normalizedPrediction,
+              description: detail?['description'],
+              treatment: detail?['treatment'],
+            ),
+          ),
+        );
       } else {
         debugPrint(
             'Error from API: ${streamedResponse.statusCode} - $responseBody');
@@ -285,26 +474,10 @@ class _ScanPageState extends State<ScanPage> {
     }
   }
 
+  // ================== UI ==================
+
   @override
   Widget build(BuildContext context) {
-    final prediction = _predictionResult;
-    String? labelName;
-    double? confidencePercent;
-    String? description;
-    String? treatment;
-
-    if (prediction != null) {
-      labelName = prediction['label_name']?.toString();
-      final conf = prediction['confidence'];
-      if (conf is num) {
-        confidencePercent = conf * 100.0;
-      }
-      if (labelName != null && _diseaseDetails.containsKey(labelName)) {
-        description = _diseaseDetails[labelName]!['description'];
-        treatment = _diseaseDetails[labelName]!['treatment'];
-      }
-    }
-
     return Scaffold(
       backgroundColor: Colors.grey[100],
       body: AnnotatedRegion<SystemUiOverlayStyle>(
@@ -523,7 +696,8 @@ class _ScanPageState extends State<ScanPage> {
                                   ),
                                   const SizedBox(height: 12),
                                   ElevatedButton(
-                                    onPressed: _isLoading ? null : _openGallery,
+                                    onPressed:
+                                        _isLoading ? null : _openGallery,
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color(0xFF5D4037),
                                       foregroundColor: Colors.white,
@@ -570,7 +744,7 @@ class _ScanPageState extends State<ScanPage> {
                         ),
                       ),
 
-                      // Recently Added (placeholder)
+                      // Recently Added
                       InkWell(
                         onTap: () {
                           Navigator.push(
@@ -626,6 +800,7 @@ class _ScanPageState extends State<ScanPage> {
                           ),
                         ),
                       ),
+
                       // Preview selected image
                       if (_selectedImage != null)
                         Container(
@@ -673,95 +848,11 @@ class _ScanPageState extends State<ScanPage> {
                           ),
                         ),
 
-                      // Loading indicator
                       if (_isLoading)
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 16),
                           child: Center(
                             child: CircularProgressIndicator(),
-                          ),
-                        ),
-
-                      // Hasil diagnosis
-                      if (prediction != null && labelName != null)
-                        Container(
-                          margin: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 10,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Diagnosis Result',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                'Penyakit: $labelName',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              if (confidencePercent != null)
-                                Text(
-                                  'Akurasi: ${confidencePercent.toStringAsFixed(2)}%',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey[700],
-                                  ),
-                                ),
-                              const SizedBox(height: 12),
-                              if (description != null) ...[
-                                const Text(
-                                  'Deskripsi:',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  description,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey[800],
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                              ],
-                              if (treatment != null) ...[
-                                const Text(
-                                  'Penanganan:',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  treatment,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey[800],
-                                  ),
-                                ),
-                              ],
-                            ],
                           ),
                         ),
 
