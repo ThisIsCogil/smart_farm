@@ -1,171 +1,125 @@
-☕ Smart Greenhouse Coffee
+🌿 Smart Greenhouse Coffee
 
-IoT Monitoring & Control + AI Coffee Leaf Disease Detection + Mobile App
+IoT Monitoring, Device Automation, and AI Coffee Leaf Disease Detection
+Built using Flutter • Python • IoTDB • Supabase • MQTT • ESP8266/ESP32
 
-Smart Greenhouse Coffee adalah sistem terpadu berbasis IoT dan AI untuk memonitor kualitas lingkungan rumah kaca kopi, mengontrol perangkat otomatis, serta melakukan deteksi dini penyakit daun kopi menggunakan CNN (ResNet-50). Sistem ini menggabungkan ESP8266/ESP32, MQTT, Apache IoTDB, Supabase, Python Backend, dan Flutter Mobile App.
+<p align="center"> <img src="https://raw.githubusercontent.com/github/explore/main/topics/iot/iot.png" width="110" /> <img src="https://raw.githubusercontent.com/github/explore/main/topics/flutter/flutter.png" width="110" /> <img src="https://raw.githubusercontent.com/github/explore/main/topics/python/python.png" width="110" /> </p>
+<p align="center"> <img src="https://img.shields.io/badge/Flutter-3.27-blue?logo=flutter&style=for-the-badge"/> <img src="https://img.shields.io/badge/Python-3.10-yellow?logo=python&style=for-the-badge"/> <img src="https://img.shields.io/badge/Supabase-Database-3FCF8E?logo=supabase&style=for-the-badge"/> <img src="https://img.shields.io/badge/Apache-IoTDB-red?logo=apache&style=for-the-badge"/> <img src="https://img.shields.io/badge/MQTT-HiveMQ-orange?logo=mqtt&style=for-the-badge"/> </p>
+✨ Overview
 
-🚀 Fitur Utama
-🌡️ 1. IoT Sensor Monitoring
+Smart Greenhouse Coffee adalah sistem cerdas berbasis IoT + AI + Mobile App untuk memonitor kondisi rumah kaca kopi, melakukan kontrol otomatis, serta mendeteksi penyakit daun kopi menggunakan model ResNet50.
 
-Sensor: suhu, kelembapan, soil moisture
+Sistem ini menggabungkan:
 
-ESP8266/ESP32 mengirim data ke MQTT (HiveMQ Cloud) setiap 5 detik
+IoT Sensor → MQTT → IoTDB
 
-Data disimpan ke Apache IoTDB sebagai time-series database
+Python Workers → Supabase
 
-Grafik historis (hour/day/week/month) ditampilkan di aplikasi mobile
+AI Detection (Flask + PyTorch)
 
-🔧 2. Kontrol Perangkat Otomatis & Manual
+Flutter Mobile App (Dashboard, Control, Diagnosis, Calendar)
 
-Perangkat:
+Gemini AI untuk memberikan rekomendasi perawatan
 
-Water Pump
+🏗️ System Architecture
+flowchart TD
 
-Humidifier
+A[ESP8266 / ESP32] -->|Sensor Data| B((MQTT Broker<br>HiveMQ Cloud))
+B --> C[Python Workers]
+C -->|Insert Time-series| D[Apache IoTDB]
+C -->|Aggregations & Notes| E[Supabase]
+F[Flutter App] -->|Realtime Devices & Stats| E
+F -->|Upload Image| G[Flask AI API (PyTorch)]
+G -->|Prediction + Leaf Analysis| F
+F -->|Ask AI| H[Google Gemini]
 
-Exhaust Fan
+🔥 Key Features
+📡 IoT Monitoring
 
-Mode:
+Data suhu, kelembapan, soil moisture setiap 5 detik
 
-Auto mode (berbasis threshold)
+Realtime dashboard
 
-Manual mode (switch dari Flutter)
+Grafik Hour/Day/Week/Month
 
-Worker Python meng-update state ke topic MQTT greenhouse/coffee/actuators
+🔧 Device Automation
 
-🌱 3. AI Coffee Leaf Disease Detection (CNN – ResNet50)
+Pump, Fan, Humidifier
 
-Model dilatih dengan dataset daun kopi (Healthy, Rust, Miner, Phoma)
+Mode otomatis & manual
 
-Preprocessing adaptif (segmentation, LAB + CLAHE, morphological ops)
+Publish ke topic MQTT: greenhouse/coffee/actuators
 
-Upload foto via Flutter
+🤖 AI Coffee Leaf Detection
 
-Flask API melakukan prediksi & leaf analysis
+ResNet50 (Healthy, Rust, Miner, Phoma)
 
-Hasil disimpan ke Supabase + histori diagnosis
+Preprocessing: segmentation, LAB+CLAHE, morphology
 
-🤖 4. Smart Notes dengan Gemini AI
+Output:
 
-Setelah prediksi, user dapat meminta penjelasan otomatis berbasis Google Gemini
+class
 
-Menjelaskan penyakit dan rekomendasi perawatan
+probabilities
 
-Tersimpan sebagai notes di Supabase
+leaf analysis (% brown/green/background)
 
-📱 5. Aplikasi Mobile (Flutter)
+🧠 Gemini AI Notes
 
-Dashboard sensor
+Penjelasan penyakit otomatis
 
-Kontrol perangkat (auto/manual)
+Rekomendasi perawatan
 
-Kalender tugas
+Tersimpan sebagai “notes” di Supabase
 
-Riwayat diagnosis daun
+📱 Flutter App
 
-Realtime notification dari Supabase
+UI modern
 
-Export data ke Excel
+Realtime notifications
 
-🧠 6. Backend Worker & Pipeline
+Calendar with tasks
 
-Worker Python untuk MQTT → IoTDB
+Diagnosis history + detail fullscreen
 
-Worker Python untuk IoTDB → Supabase (hourly/daily stats)
+🧩 Tech Stack
+Layer	Technology
+Frontend	Flutter 3.27
+AI Backend	Flask • PyTorch • OpenCV
+Database	Apache IoTDB (sensor) • Supabase Postgres (user/data)
+Messaging	HiveMQ MQTT Broker
+Workers	Python (MQTT → IoTDB, IoTDB → Supabase, Notifications)
+Cloud Storage	Supabase Storage (images)
+AI Text	Google Gemini
+📂 Project Structure (Aesthetic)
+smart-greenhouse-coffee
+│
+├── backend/
+│   ├── flask_api/
+│   ├── workers/
+│   ├── model/
+│   └── requirements.txt
+│
+├── mobile_app/
+│   ├── lib/
+│   │   ├── auth/
+│   │   ├── home/
+│   │   ├── diagnosis/
+│   │   ├── notification/
+│   │   └── calendar/
+│   └── pubspec.yaml
+│
+├── iot_devices/
+│   ├── esp8266_main.ino
+│   └── esp32_cam.ino
+│
+└── docs/
+    ├── erd_supabase.png
+    ├── architecture.drawio
+    └── flow_iotdb.png
 
-Worker notifikasi otomatis
-
-Flask API untuk AI inference
-
-🏗️ Arsitektur Sistem
-[ESP8266 / ESP32] 
-       |
-       | MQTT Publish (JSON)
-       v
-[HiveMQ Cloud MQTT Broker]
-       |
-       v
-[Python Workers]
-   - iotdb_worker (insert sensor)
-   - notif_worker (threshold alert)
-   - supabase_worker (aggregations)
-       |
-       +--> Apache IoTDB (time-series)
-       +--> Supabase (Postgres + Storage)
-       |
-       v
-[Flutter Mobile App]
-   - Dashboard
-   - Control Devices
-   - Diagnosis
-   - Notifications (Realtime)
-   - Calendar
-
-📂 Struktur Folder (Direkomendasikan)
-/backend
-    /flask_api
-    /model
-    /workers
-    iotdb_config.py
-    supabase_config.py
-
-/iot_devices
-    esp8266_main.ino
-    esp32_cam.ino
-
-/mobile_app
-    /lib
-        /auth
-        /home
-            /dashboard
-            /widgets
-            /controllers
-            /models
-        /diagnosis
-        /notification
-        /calendar
-    pubspec.yaml
-
-/docs
-    architecture.drawio
-    erd_supabase.png
-    flow_iotdb.png
-
-README.md
-
-🛠️ Teknologi yang Digunakan
-Hardware
-
-ESP8266 (Wemos D1 R2 Mini)
-
-ESP32-CAM
-
-Soil moisture sensor, DHT22
-
-Software
-
-Apache IoTDB 2.x — time-series database utama
-
-Supabase (Postgres + Storage + Realtime)
-
-HiveMQ Cloud — MQTT broker
-
-Flask + PyTorch — AI inference API
-
-Python workers — ETL IoTDB & Supabase
-
-Flutter — aplikasi mobile
-
-Gemini API — AI explanation
-
-📡 MQTT Topic Structure
-greenhouse/coffee/sensors
-greenhouse/coffee/actuators
-greenhouse/coffee/alerts
-
-
-Contoh payload sensor:
-
+🧪 MQTT Payload Example
+Sensors
 {
   "temperature": 27.4,
   "humidity": 88.1,
@@ -173,9 +127,7 @@ Contoh payload sensor:
   "timestamp": "2025-11-22T06:00:00"
 }
 
-
-Contoh payload actuator:
-
+Actuators
 {
   "fan": true,
   "fan_mode": "auto",
@@ -185,89 +137,56 @@ Contoh payload actuator:
   "humidifier_mode": "auto"
 }
 
-🤖 AI Model – ResNet50
+🤖 AI Model (ResNet50)
 
-Pretrained ImageNet → fine-tuned untuk 4 kelas
-
-Input size 224×224
+Pretrained ImageNet → fine-tuning 4 kelas
 
 Optimizer: Adam
 
-Augmentasi kuat (flip, rotation, color jitter, affine)
+Input: 224 × 224
 
-Accuracy > 95% (validasi)
+Augmentasi kuat:
 
-📱 Fitur Flutter App
-Dashboard
+Horizontal/Vertical flip
 
-Card sensor realtime
+Rotation
 
-Warna status otomatis (normal/warning/danger)
+Color jitter
 
-Device Control
+Affine transform
 
-Toggle switch manual
+Output:
 
-Mode otomatis berdasarkan threshold
+Prediksi kelas
 
-Diagnosis
+Probabilitas
 
-Foto → Crop → Upload → Prediksi
+Leaf segmentation analysis
 
-Tampilkan hasil + leaf analysis + Gemini notes
-
-Calendar
-
-Supabase realtime tasks
-
-Notifications
-
-Threshold alert
-
-Device status update
-
-History
-
-Riwayat diagnosis + detail fullscreen
-
-⚙️ Instalasi
-1. Clone repository
+🚀 Installation
+1. Clone Repo
 git clone https://github.com/yourusername/smart-greenhouse-coffee.git
 cd smart-greenhouse-coffee
 
-2. Setup Python Backend
+2. Backend
 cd backend
 pip install -r requirements.txt
-python flask_api.py
+python app.py
 
-3. Setup IoTDB
+3. Flutter App
+flutter pub get
+flutter run
 
-Download IoTDB 2.0 → configure → run
+4. IoTDB
 
-4. Setup Supabase
+Download IoTDB 2.0
 
-Buat project
+Start server
+
+Buat storage group + timeseries
+
+5. Supabase
 
 Import tabel
 
 Buat bucket leaf-images
-
-5. Setup Flutter
-flutter pub get
-flutter run
-
-📊 ERD (Supabase)
-
-Tabel utama:
-
-leaf_diagnoses
-
-tasks
-
-notifications
-
-sensor_hourly_stats
-
-sensor_daily_stats
-
-users
